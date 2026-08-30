@@ -27,7 +27,7 @@ derivative use except by explicit written permission from the author.
 
 ## Contact
 
-worthwyl2022@gmail.com | WorthWyl Media | Las Vegas, NV
+worthwylmedia@gmail.com | WorthWyl Media | Las Vegas, NV
 
 ## Evidence Preservation
 
