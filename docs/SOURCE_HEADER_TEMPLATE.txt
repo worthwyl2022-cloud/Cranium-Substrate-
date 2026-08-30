@@ -1,0 +1,7 @@
+/*
+ * Cranium Substrate Engine
+ * Copyright (c) 2026 Wyl Mathes — WorthWyl Media
+ * All rights reserved.
+ * Unauthorized reproduction, distribution, or commercial use is prohibited.
+ * Cranium Substrate™ is a common-law trademark of Wyl Mathes.
+ */
