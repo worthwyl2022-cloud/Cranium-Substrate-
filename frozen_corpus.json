@@ -1,0 +1,92 @@
+[
+  {
+    "id": "lexical-alive-dead",
+    "premise": "The Sentinel is alive and actively guarding the archive.",
+    "hypothesis": "The Sentinel is dead.",
+    "isContradiction": true
+  },
+  {
+    "id": "lexical-open-closed",
+    "premise": "The sealed chamber is open for inspection.",
+    "hypothesis": "The chamber is closed.",
+    "isContradiction": true
+  },
+  {
+    "id": "lexical-allowed-forbidden",
+    "premise": "Authorized researchers are allowed to read the public ledger.",
+    "hypothesis": "Authorized researchers are forbidden from reading the public ledger.",
+    "isContradiction": true
+  },
+  {
+    "id": "lexical-always-never",
+    "premise": "The beacon always transmits its identity signal at midnight.",
+    "hypothesis": "The beacon never transmits its identity signal.",
+    "isContradiction": true
+  },
+  {
+    "id": "immutable-biological-prosthetic",
+    "premise": "Mara has a biological hand with living tissue and bone.",
+    "hypothesis": "Mara has a permanent mechanical prosthetic hand.",
+    "isContradiction": true
+  },
+  {
+    "id": "identity-never-earth-michigan",
+    "premise": "Orin has never traveled to Earth.",
+    "hypothesis": "Orin spent his childhood in Michigan.",
+    "isContradiction": true
+  },
+  {
+    "id": "temporal-destroyed-operational",
+    "premise": "The radio tower was permanently destroyed during the storm.",
+    "hypothesis": "The station later broadcast from the tower.",
+    "isContradiction": true
+  },
+  {
+    "id": "process-quarantine-bypassed",
+    "premise": "Every unverified memory requires quarantine before commitment.",
+    "hypothesis": "The unverified memory was directly committed without quarantine.",
+    "isContradiction": true
+  },
+  {
+    "id": "authority-tier-zero-tier-three",
+    "premise": "Modification of protected state requires Tier 3 authorization.",
+    "hypothesis": "A Tier 0 operator modified the protected state.",
+    "isContradiction": true
+  },
+  {
+    "id": "chain-parent-hash-isolated",
+    "premise": "Each ledger block requires a parent hash and belongs to the hash chain.",
+    "hypothesis": "The ledger accepted an isolated block without a parent hash.",
+    "isContradiction": true
+  },
+  {
+    "id": "causal-gate-required-ungated",
+    "premise": "Interstellar FTL travel requires a gate.",
+    "hypothesis": "The vessel made an ungated jump without a gate.",
+    "isContradiction": true
+  },
+  {
+    "id": "domain-fatigue-pristine",
+    "premise": "Using the relic causes necrotic fatigue in the wielder's hands.",
+    "hypothesis": "After using the relic, the wielder's hands remained pristine and fatigue-free.",
+    "isContradiction": true
+  },
+  {
+    "id": "noncontradiction-allowed-reading",
+    "premise": "Authorized researchers are allowed to read the public ledger.",
+    "hypothesis": "The public ledger contains entries that authorized researchers may inspect.",
+    "isContradiction": false
+  },
+  {
+    "id": "noncontradiction-gate-use",
+    "premise": "Interstellar FTL travel requires a gate.",
+    "hypothesis": "The vessel waited for access to a gate before beginning its journey.",
+    "isContradiction": false
+  },
+  {
+    "id": "noncontradiction-quarantine",
+    "premise": "Every unverified memory requires quarantine before commitment.",
+    "hypothesis": "The memory remained quarantined while reviewers examined it.",
+    "isContradiction": false
+  }
+]
