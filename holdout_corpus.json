@@ -1,0 +1,98 @@
+[
+  {
+    "id": "holdout-01-limb",
+    "premise": "Asha's left hand is wholly organic, with living skin, muscle, and bone.",
+    "hypothesis": "Asha's left hand is an artificial device.",
+    "isContradiction": true
+  },
+  {
+    "id": "holdout-02-biography",
+    "premise": "Neri has spent her entire life off-world and has not once set foot on Earth.",
+    "hypothesis": "Neri attended elementary school in Detroit.",
+    "isContradiction": true
+  },
+  {
+    "id": "holdout-03-structure",
+    "premise": "After the blast, the observatory ceased to exist and could not be rebuilt.",
+    "hypothesis": "The observatory was used intact for a broadcast the following day.",
+    "isContradiction": true
+  },
+  {
+    "id": "holdout-04-workflow",
+    "premise": "Incoming memories must remain in an isolation review stage before they enter the permanent store.",
+    "hypothesis": "The incoming memory entered the permanent store immediately, bypassing isolation review.",
+    "isContradiction": true
+  },
+  {
+    "id": "holdout-05-authority",
+    "premise": "Only a level-three custodian may change records in the protected register.",
+    "hypothesis": "A level-zero clerk changed a record in the protected register.",
+    "isContradiction": true
+  },
+  {
+    "id": "holdout-06-ledger",
+    "premise": "Every new ledger entry must cite the digest of the entry immediately before it.",
+    "hypothesis": "A new ledger entry was accepted with no link to any prior entry.",
+    "isContradiction": true
+  },
+  {
+    "id": "holdout-07-transit",
+    "premise": "The drive can cross star systems only when it is coupled to a relay portal.",
+    "hypothesis": "The craft crossed to another star system without connecting to a relay portal.",
+    "isContradiction": true
+  },
+  {
+    "id": "holdout-08-effect",
+    "premise": "Channeling the shard inevitably leaves blackened exhaustion in the user's hands.",
+    "hypothesis": "After channeling the shard, the user's hands showed no exhaustion or darkening.",
+    "isContradiction": true
+  },
+  {
+    "id": "holdout-09-polarity",
+    "premise": "The archive door remains unlocked during public hours.",
+    "hypothesis": "The archive door is locked during public hours.",
+    "isContradiction": true
+  },
+  {
+    "id": "holdout-10-liveness",
+    "premise": "The witness survived the incident and is speaking with investigators.",
+    "hypothesis": "The witness did not survive the incident.",
+    "isContradiction": true
+  },
+  {
+    "id": "holdout-11-compatible-review",
+    "premise": "Incoming memories must remain in an isolation review stage before they enter the permanent store.",
+    "hypothesis": "Reviewers kept the incoming memory isolated while they examined it.",
+    "isContradiction": false
+  },
+  {
+    "id": "holdout-12-compatible-transit",
+    "premise": "The drive can cross star systems only when it is coupled to a relay portal.",
+    "hypothesis": "The craft remained docked until a relay portal became available.",
+    "isContradiction": false
+  },
+  {
+    "id": "holdout-13-compatible-ledger",
+    "premise": "Every new ledger entry must cite the digest of the entry immediately before it.",
+    "hypothesis": "The auditor checked that each entry referenced an earlier digest.",
+    "isContradiction": false
+  },
+  {
+    "id": "holdout-14-compatible-authority",
+    "premise": "Only a level-three custodian may change records in the protected register.",
+    "hypothesis": "A level-three custodian reviewed a proposed change to the protected register.",
+    "isContradiction": false
+  },
+  {
+    "id": "holdout-15-compatible-limb",
+    "premise": "Asha's left hand is wholly organic, with living skin, muscle, and bone.",
+    "hypothesis": "Asha wore a glove over her left hand.",
+    "isContradiction": false
+  },
+  {
+    "id": "holdout-16-compatible-structure",
+    "premise": "After the blast, the observatory ceased to exist and could not be rebuilt.",
+    "hypothesis": "Engineers inspected the site where the observatory once stood.",
+    "isContradiction": false
+  }
+]
