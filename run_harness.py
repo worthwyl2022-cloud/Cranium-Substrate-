@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
-"""
-Cranium Substrate — structured contradiction harness.
-
-This is a deterministic rule evaluator. It is not a general-purpose NLI model.
-Every positive verdict records the rule family that produced it.
-"""
+"""Cranium Substrate deterministic, auditable contradiction harness."""
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 
 CORPUS_CANDIDATES = (
@@ -23,356 +19,115 @@ CORPUS_CANDIDATES = (
 
 
 def normalize(text: str) -> str:
-    text = text.lower()
-    text = text.replace("—", " ").replace("-", " ")
-    return re.sub(r"s+", " ", text).strip()
+    text = text.lower().replace("—", " ").replace("-", " ")
+    return re.sub(r"\s+", " ", text).strip()
 
 
-def contains_any(text: str, phrases: tuple[str, ...]) -> bool:
+def has(text: str, *phrases: str) -> bool:
     return any(phrase in text for phrase in phrases)
 
 
-def lexical_opposition(premise: str, hypothesis: str) -> dict[str, Any] | None:
-    oppositions = (
-        ("always", "never"),
-        ("never", "always"),
-        ("alive", "dead"),
-        ("dead", "alive"),
-        ("open", "closed"),
-        ("closed", "open"),
-        ("true", "false"),
-        ("false", "true"),
-        ("allowed", "forbidden"),
-        ("forbidden", "allowed"),
-    )
+def finding(rule_family: str, reason: str, **facts: Any) -> dict[str, Any]:
+    return {"rule_family": rule_family, "facts": facts, "reason": reason}
 
-    for left, right in oppositions:
-        if left in premise and right in hypothesis:
-            return {
-                "rule_family": "lexical_opposition",
-                "facts": {"premise_term": left, "hypothesis_term": right},
-                "reason": f"'{left}' conflicts with '{right}'.",
-            }
+
+def lexical_opposition(p: str, h: str) -> dict[str, Any] | None:
+    pairs = (
+        (("always",), ("never",)),
+        (("alive", "survived", "speaking with investigators"), ("dead", "did not survive")),
+        (("dead", "did not survive"), ("alive", "survived", "speaking with investigators")),
+        (("open", "unlocked"), ("closed", "locked")),
+        (("closed", "locked"), ("open", "unlocked")),
+        (("allowed",), ("forbidden",)),
+        (("forbidden",), ("allowed",)),
+    )
+    for left, right in pairs:
+        if has(p, *left) and has(h, *right):
+            return finding("lexical_opposition", "Opposing state or polarity terms were detected.", premise_terms=left, hypothesis_terms=right)
     return None
 
 
-def immutable_attribute_conflict(
-    premise: str, hypothesis: str
-) -> dict[str, Any] | None:
-    biological_terms = (
-        "biological hand",
-        "biological arm",
-        "natural hand",
-        "natural arm",
-        "flesh and blood hand",
-    )
-    prosthetic_terms = (
-        "mechanical prosthesis",
-        "prosthetic hand",
-        "prosthetic arm",
-        "mechanical hand",
-        "artificial hand",
-        "artificial arm",
-    )
-
-    if contains_any(premise, biological_terms) and contains_any(hypothesis, prosthetic_terms):
-        return {
-            "rule_family": "immutable_attribute_conflict",
-            "facts": {
-                "premise_attribute": "biological_limb",
-                "hypothesis_attribute": "permanent_prosthetic_limb",
-            },
-            "reason": "A biological limb conflicts with a permanent mechanical prosthesis.",
-        }
-
-    if contains_any(premise, prosthetic_terms) and contains_any(hypothesis, biological_terms):
-        return {
-            "rule_family": "immutable_attribute_conflict",
-            "facts": {
-                "premise_attribute": "permanent_prosthetic_limb",
-                "hypothesis_attribute": "biological_limb",
-            },
-            "reason": "A permanent mechanical prosthesis conflicts with a biological limb.",
-        }
-
+def immutable_attribute_conflict(p: str, h: str) -> dict[str, Any] | None:
+    organic = ("biological hand", "biological arm", "natural hand", "natural arm", "organic", "living skin", "living tissue")
+    artificial = ("mechanical prosthesis", "prosthetic hand", "prosthetic arm", "mechanical hand", "artificial hand", "artificial arm", "artificial device")
+    if has(p, *organic) and has(h, *artificial):
+        return finding("immutable_attribute_conflict", "An organic limb conflicts with an artificial-limb claim.", premise_attribute="organic_limb", hypothesis_attribute="artificial_limb")
+    if has(p, *artificial) and has(h, *organic):
+        return finding("immutable_attribute_conflict", "An artificial limb conflicts with an organic-limb claim.", premise_attribute="artificial_limb", hypothesis_attribute="organic_limb")
     return None
 
 
-def identity_history_conflict(premise: str, hypothesis: str) -> dict[str, Any] | None:
-    never_earth = (
-        "never traveled to earth",
-        "never travelled to earth",
-        "never been to earth",
-        "has never been to earth",
-    )
-    earth_history = (
-        "childhood in michigan",
-        "grew up in michigan",
-        "born in michigan",
-        "lived in michigan",
-        "raised in michigan",
-    )
-
-    if contains_any(premise, never_earth) and contains_any(hypothesis, earth_history):
-        return {
-            "rule_family": "identity_history_conflict",
-            "facts": {
-                "premise_constraint": "never_on_earth",
-                "hypothesis_history": "earth_residency",
-            },
-            "reason": "A person who was never on Earth cannot have a childhood in Michigan.",
-        }
-
-    if contains_any(premise, earth_history) and contains_any(hypothesis, never_earth):
-        return {
-            "rule_family": "identity_history_conflict",
-            "facts": {
-                "premise_history": "earth_residency",
-                "hypothesis_constraint": "never_on_earth",
-            },
-            "reason": "Earth residency conflicts with never having been on Earth.",
-        }
-
+def identity_history_conflict(p: str, h: str) -> dict[str, Any] | None:
+    never_earth = ("never traveled to earth", "never travelled to earth", "never been to earth", "never on earth", "not once set foot on earth", "entire life off world")
+    earth_history = ("childhood in michigan", "grew up in michigan", "born in michigan", "lived in michigan", "raised in michigan", "school in detroit", "attended elementary school in detroit")
+    if has(p, *never_earth) and has(h, *earth_history):
+        return finding("identity_history_conflict", "Never having been on Earth conflicts with an Earth-residency history.", premise_constraint="never_on_earth", hypothesis_history="earth_residency")
+    if has(p, *earth_history) and has(h, *never_earth):
+        return finding("identity_history_conflict", "An Earth-residency history conflicts with never having been on Earth.", premise_history="earth_residency", hypothesis_constraint="never_on_earth")
     return None
 
 
-def temporal_state_conflict(premise: str, hypothesis: str) -> dict[str, Any] | None:
-    destroyed_terms = (
-        "permanently destroyed",
-        "completely destroyed",
-        "destroyed beyond repair",
-        "was demolished",
-        "had been destroyed",
-    )
-    intact_terms = (
-        "undamaged",
-        "intact",
-        "still standing",
-        "unharmed",
-        "broadcast from the tower",
-    )
-
-    if contains_any(premise, destroyed_terms) and contains_any(hypothesis, intact_terms):
-        return {
-            "rule_family": "temporal_state_conflict",
-            "facts": {
-                "premise_state": "permanently_destroyed",
-                "hypothesis_state": "intact_or_operational",
-            },
-            "reason": "A permanently destroyed structure cannot later be intact or operational.",
-        }
-
-    if contains_any(premise, intact_terms) and contains_any(hypothesis, destroyed_terms):
-        return {
-            "rule_family": "temporal_state_conflict",
-            "facts": {
-                "premise_state": "intact_or_operational",
-                "hypothesis_state": "permanently_destroyed",
-            },
-            "reason": "An intact or operational structure conflicts with permanent destruction.",
-        }
-
+def temporal_state_conflict(p: str, h: str) -> dict[str, Any] | None:
+    destroyed = ("permanently destroyed", "completely destroyed", "destroyed beyond repair", "was demolished", "had been destroyed", "ceased to exist", "could not be rebuilt")
+    operational = ("undamaged", "intact", "still standing", "unharmed", "broadcast from the tower", "used intact for a broadcast")
+    if has(p, *destroyed) and has(h, *operational):
+        return finding("temporal_state_conflict", "A permanently destroyed structure cannot be intact or operational later.", premise_state="destroyed", hypothesis_state="intact_or_operational")
+    if has(p, *operational) and has(h, *destroyed):
+        return finding("temporal_state_conflict", "An intact or operational structure conflicts with permanent destruction.", premise_state="intact_or_operational", hypothesis_state="destroyed")
     return None
 
 
-def required_process_conflict(premise: str, hypothesis: str) -> dict[str, Any] | None:
-    quarantine_required = (
-        "quarantine is required",
-        "requires quarantine",
-        "must be quarantined",
-        "mandatory quarantine",
-    )
-    bypass_quarantine = (
-        "directly committed",
-        "committed directly",
-        "without quarantine",
-        "skipped quarantine",
-        "bypassed quarantine",
-    )
-
-    if contains_any(premise, quarantine_required) and contains_any(hypothesis, bypass_quarantine):
-        return {
-            "rule_family": "required_process_conflict",
-            "facts": {
-                "required_step": "quarantine",
-                "attempted_action": "direct_commit_without_quarantine",
-            },
-            "reason": "A direct commitment conflicts with a mandatory quarantine step.",
-        }
-
-    if contains_any(premise, bypass_quarantine) and contains_any(hypothesis, quarantine_required):
-        return {
-            "rule_family": "required_process_conflict",
-            "facts": {
-                "premise_action": "direct_commit_without_quarantine",
-                "hypothesis_requirement": "quarantine",
-            },
-            "reason": "Bypassing quarantine conflicts with a mandatory quarantine rule.",
-        }
-
+def required_process_conflict(p: str, h: str) -> dict[str, Any] | None:
+    isolation_required = ("quarantine is required", "requires quarantine", "must be quarantined", "mandatory quarantine", "must remain in an isolation review stage", "isolation review stage before")
+    bypassed = ("directly committed", "committed directly", "without quarantine", "skipped quarantine", "bypassed quarantine", "entered the permanent store immediately", "bypassing isolation review")
+    if has(p, *isolation_required) and has(h, *bypassed):
+        return finding("required_process_conflict", "A mandatory isolation or quarantine step was bypassed.", required_step="isolation_or_quarantine", attempted_action="commit_without_required_review")
+    if has(p, *bypassed) and has(h, *isolation_required):
+        return finding("required_process_conflict", "Bypassing isolation or quarantine conflicts with a mandatory review rule.", premise_action="commit_without_required_review", hypothesis_requirement="isolation_or_quarantine")
     return None
 
 
-def authority_scope_conflict(premise: str, hypothesis: str) -> dict[str, Any] | None:
-    tier_three_required = (
-        "tier 3 is required",
-        "requires tier 3",
-        "tier 3 authorization",
-        "tier three authorization",
-        "only tier 3",
-    )
-    tier_zero_action = (
-        "tier 0 modified",
-        "tier 0 changed",
-        "tier 0 altered",
-        "tier zero modified",
-        "tier zero changed",
-        "tier zero altered",
-    )
-
-    if contains_any(premise, tier_three_required) and contains_any(hypothesis, tier_zero_action):
-        return {
-            "rule_family": "authority_scope_conflict",
-            "facts": {
-                "required_tier": 3,
-                "requested_actor_tier": 0,
-                "operation": "protected_state_mutation",
-            },
-            "reason": "Tier 0 cannot authorize a Tier 3 protected-state mutation.",
-        }
-
-    if contains_any(premise, tier_zero_action) and contains_any(hypothesis, tier_three_required):
-        return {
-            "rule_family": "authority_scope_conflict",
-            "facts": {
-                "premise_actor_tier": 0,
-                "hypothesis_required_tier": 3,
-                "operation": "protected_state_mutation",
-            },
-            "reason": "A Tier 0 mutation conflicts with a Tier 3 authorization requirement.",
-        }
-
+def authority_scope_conflict(p: str, h: str) -> dict[str, Any] | None:
+    senior_only = ("tier 3 is required", "requires tier 3", "tier 3 authorization", "tier three authorization", "only tier 3", "only a level three custodian")
+    junior_action = ("tier 0 modified", "tier 0 changed", "tier 0 altered", "tier zero modified", "tier zero changed", "tier zero altered", "level zero clerk changed")
+    if has(p, *senior_only) and has(h, *junior_action):
+        return finding("authority_scope_conflict", "A junior actor performed a protected operation reserved for a senior authority tier.", required_tier="senior", requested_actor_tier="junior", operation="protected_state_mutation")
+    if has(p, *junior_action) and has(h, *senior_only):
+        return finding("authority_scope_conflict", "A junior protected-state mutation conflicts with a senior-only authorization rule.", premise_actor_tier="junior", hypothesis_required_tier="senior")
     return None
 
 
-def hash_chain_conflict(premise: str, hypothesis: str) -> dict[str, Any] | None:
-    chain_required = (
-        "parent hash is required",
-        "requires a parent hash",
-        "must include a parent hash",
-        "hash chain is required",
-        "each block references its parent",
-    )
-    unlinked_block = (
-        "isolated block",
-        "unlinked block",
-        "without a parent hash",
-        "no parent hash",
-        "standalone block",
-    )
-
-    if contains_any(premise, chain_required) and contains_any(hypothesis, unlinked_block):
-        return {
-            "rule_family": "hash_chain_conflict",
-            "facts": {
-                "required_relation": "parent_hash_chain",
-                "hypothesis_relation": "isolated_or_unlinked_block",
-            },
-            "reason": "An isolated block conflicts with a required parent-hash chain.",
-        }
-
-    if contains_any(premise, unlinked_block) and contains_any(hypothesis, chain_required):
-        return {
-            "rule_family": "hash_chain_conflict",
-            "facts": {
-                "premise_relation": "isolated_or_unlinked_block",
-                "hypothesis_requirement": "parent_hash_chain",
-            },
-            "reason": "A block without a parent hash conflicts with a required hash chain.",
-        }
-
+def hash_chain_conflict(p: str, h: str) -> dict[str, Any] | None:
+    chain_required = ("parent hash is required", "requires a parent hash", "must include a parent hash", "hash chain is required", "each block references its parent", "must cite the digest of the entry immediately before it")
+    unlinked = ("isolated block", "unlinked block", "without a parent hash", "no parent hash", "standalone block", "no link to any prior entry")
+    if has(p, *chain_required) and has(h, *unlinked):
+        return finding("hash_chain_conflict", "An entry without a predecessor link conflicts with the required chain relation.", required_relation="predecessor_hash_or_digest", hypothesis_relation="unlinked_entry")
+    if has(p, *unlinked) and has(h, *chain_required):
+        return finding("hash_chain_conflict", "An unlinked entry conflicts with a required predecessor chain.", premise_relation="unlinked_entry", hypothesis_requirement="predecessor_hash_or_digest")
     return None
 
 
-def causal_constraint_conflict(premise: str, hypothesis: str) -> dict[str, Any] | None:
-    gate_required = (
-        "requires a gate",
-        "gate required",
-        "must use a gate",
-        "only through a gate",
-        "ftl requires a gate",
-    )
-    ungated_jump = (
-        "without a gate",
-        "ungated jump",
-        "jumped without a gate",
-        "ftl jump without a gate",
-        "jumped directly",
-    )
-
-    if contains_any(premise, gate_required) and contains_any(hypothesis, ungated_jump):
-        return {
-            "rule_family": "causal_constraint_conflict",
-            "facts": {
-                "required_condition": "gate",
-                "hypothesis_action": "ungated_jump",
-            },
-            "reason": "An ungated jump conflicts with a gate-required travel rule.",
-        }
-
-    if contains_any(premise, ungated_jump) and contains_any(hypothesis, gate_required):
-        return {
-            "rule_family": "causal_constraint_conflict",
-            "facts": {
-                "premise_action": "ungated_jump",
-                "hypothesis_requirement": "gate",
-            },
-            "reason": "An ungated jump conflicts with a mandatory gate requirement.",
-        }
-
+def causal_constraint_conflict(p: str, h: str) -> dict[str, Any] | None:
+    gate_required = ("requires a gate", "gate required", "must use a gate", "only through a gate", "ftl requires a gate", "only when it is coupled to a relay portal", "coupled to a relay portal")
+    ungated = ("without a gate", "ungated jump", "jumped without a gate", "ftl jump without a gate", "jumped directly", "without connecting to a relay portal")
+    if has(p, *gate_required) and has(h, *ungated):
+        return finding("causal_constraint_conflict", "A required transit gate or relay was absent.", required_condition="gate_or_relay", hypothesis_action="ungated_transit")
+    if has(p, *ungated) and has(h, *gate_required):
+        return finding("causal_constraint_conflict", "Ungated transit conflicts with a mandatory gate or relay requirement.", premise_action="ungated_transit", hypothesis_requirement="gate_or_relay")
     return None
 
 
-def domain_state_conflict(premise: str, hypothesis: str) -> dict[str, Any] | None:
-    fatigue_required = (
-        "causes necrotic fatigue",
-        "results in necrotic fatigue",
-        "leaves necrotic fatigue",
-        "necrotic fatigue is inevitable",
-    )
-    fatigue_absent = (
-        "pristine hands",
-        "fatigue free hands",
-        "fatigue-free hands",
-        "no fatigue",
-        "without fatigue",
-        "hands remained pristine",
-    )
-
-    if contains_any(premise, fatigue_required) and contains_any(hypothesis, fatigue_absent):
-        return {
-            "rule_family": "domain_state_conflict",
-            "facts": {
-                "required_effect": "necrotic_fatigue",
-                "hypothesis_state": "pristine_or_fatigue_free",
-            },
-            "reason": "A required necrotic-fatigue effect conflicts with pristine, fatigue-free hands.",
-        }
-
-    if contains_any(premise, fatigue_absent) and contains_any(hypothesis, fatigue_required):
-        return {
-            "rule_family": "domain_state_conflict",
-            "facts": {
-                "premise_state": "pristine_or_fatigue_free",
-                "hypothesis_effect": "necrotic_fatigue",
-            },
-            "reason": "Pristine, fatigue-free hands conflict with a required necrotic-fatigue effect.",
-        }
-
+def domain_state_conflict(p: str, h: str) -> dict[str, Any] | None:
+    required_effect = ("causes necrotic fatigue", "results in necrotic fatigue", "leaves necrotic fatigue", "necrotic fatigue is inevitable", "inevitably leaves blackened exhaustion")
+    absent_effect = ("pristine hands", "fatigue free hands", "fatigue free", "no fatigue", "without fatigue", "hands remained pristine", "no exhaustion or darkening")
+    if has(p, *required_effect) and has(h, *absent_effect):
+        return finding("domain_state_conflict", "A required physical effect is explicitly absent in the claim.", required_effect="fatigue_or_blackened_exhaustion", hypothesis_state="effect_absent")
+    if has(p, *absent_effect) and has(h, *required_effect):
+        return finding("domain_state_conflict", "The stated absence of the physical effect conflicts with its required occurrence.", premise_state="effect_absent", hypothesis_effect="fatigue_or_blackened_exhaustion")
     return None
 
 
-RULES = (
+RULES: tuple[Callable[[str, str], dict[str, Any] | None], ...] = (
     lexical_opposition,
     immutable_attribute_conflict,
     identity_history_conflict,
@@ -386,26 +141,18 @@ RULES = (
 
 
 def evaluate_pair(premise: str, hypothesis: str) -> dict[str, Any]:
-    normalized_premise = normalize(premise)
-    normalized_hypothesis = normalize(hypothesis)
-
+    p, h = normalize(premise), normalize(hypothesis)
     for rule in RULES:
-        evidence = rule(normalized_premise, normalized_hypothesis)
+        evidence = rule(p, h)
         if evidence:
-            return {
-                "prediction": True,
-                "premise": premise,
-                "hypothesis": hypothesis,
-                **evidence,
-            }
-
+            return {"prediction": True, "premise": premise, "hypothesis": hypothesis, **evidence}
     return {
         "prediction": False,
         "premise": premise,
         "hypothesis": hypothesis,
         "rule_family": "no_structured_conflict_detected",
         "facts": {},
-        "reason": "No configured contradiction rule matched this pair.",
+        "reason": "No configured deterministic contradiction rule matched this pair.",
     }
 
 
@@ -420,25 +167,24 @@ def get_text(record: dict[str, Any], keys: tuple[str, ...]) -> str:
 def get_expected(record: dict[str, Any]) -> bool | None:
     for key in ("isContradiction", "is_contradiction", "contradiction", "label"):
         value = record.get(key)
-
         if isinstance(value, bool):
             return value
-
         if isinstance(value, str):
             value = value.strip().lower()
             if value in {"true", "contradiction", "contradict", "1", "yes"}:
                 return True
             if value in {"false", "noncontradiction", "non_contradiction", "0", "no"}:
                 return False
-
         if isinstance(value, int) and value in {0, 1}:
             return bool(value)
-
     return None
 
 
-def load_corpus() -> tuple[Path, list[dict[str, Any]]]:
-    for candidate in CORPUS_CANDIDATES:
+def load_corpus(requested: str | None) -> tuple[Path, list[dict[str, Any]]]:
+    candidates = (requested,) if requested else CORPUS_CANDIDATES
+    for candidate in candidates:
+        if not candidate:
+            continue
         path = Path(candidate)
         if path.exists():
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -448,48 +194,31 @@ def load_corpus() -> tuple[Path, list[dict[str, Any]]]:
                 for key in ("cases", "items", "records", "examples"):
                     if isinstance(data.get(key), list):
                         return path, data[key]
-
-    raise FileNotFoundError(
-        "No supported corpus file found. Expected one of: "
-        + ", ".join(CORPUS_CANDIDATES)
-    )
+    raise FileNotFoundError("No supported corpus file found: " + ", ".join(c for c in candidates if c))
 
 
 def main() -> None:
-    corpus_path, corpus = load_corpus()
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--corpus", help="Path to a JSON corpus; defaults to frozen_corpus.json when present.")
+    args = parser.parse_args()
+    corpus_path, corpus = load_corpus(args.corpus)
     results: list[dict[str, Any]] = []
-    scored = 0
-    correct = 0
-    false_positives = 0
-    false_negatives = 0
-
+    scored = correct = false_positives = false_negatives = 0
     for index, record in enumerate(corpus, start=1):
         premise = get_text(record, ("premise", "context", "source"))
         hypothesis = get_text(record, ("hypothesis", "claim", "target"))
         expected = get_expected(record)
         evaluation = evaluate_pair(premise, hypothesis)
-
-        result = {
-            "case": record.get("id", record.get("case_id", index)),
-            "expected": expected,
-            **evaluation,
-        }
-
+        result = {"case": record.get("id", record.get("case_id", index)), "expected": expected, **evaluation}
         if expected is not None:
             scored += 1
             result["correct"] = evaluation["prediction"] == expected
             correct += int(result["correct"])
-
-            if evaluation["prediction"] and not expected:
-                false_positives += 1
-            elif not evaluation["prediction"] and expected:
-                false_negatives += 1
-
+            false_positives += int(evaluation["prediction"] and not expected)
+            false_negatives += int(not evaluation["prediction"] and expected)
         results.append(result)
-
     summary = {
-        "harness": "Cranium Substrate structured contradiction evaluator",
+        "harness": "Cranium Substrate deterministic structured-rule evaluator",
         "corpus": str(corpus_path),
         "cases": len(results),
         "scored_cases": scored,
@@ -499,7 +228,6 @@ def main() -> None:
         "false_negatives": false_negatives,
         "results": results,
     }
-
     print(json.dumps(summary, indent=2))
 
 
