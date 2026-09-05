@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Live / Mocked Hybrid Receipts Runner for Cranium Substrate.
-Evaluates the frozen corpus against the ContradictionEngine logic or live Gemini API,
+Live Receipts Runner for Cranium Substrate.
+Evaluates the frozen corpus against the canonical structured contradiction engine,
 producing cryptographic, audit-verifiable execution receipts with full prompt trace,
 contradiction rationale, and latency tracking.
 """
@@ -13,34 +13,17 @@ import time
 import uuid
 import hashlib
 
+from run_harness import evaluate_pair
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CORPUS_PATH = os.path.join(SCRIPT_DIR, "corpus_frozen_v1.json")
+CORPUS_PATH = os.path.join(SCRIPT_DIR, "frozen_corpus.json")
 RECEIPTS_PATH = os.path.join(SCRIPT_DIR, "live_execution_receipts.json")
 
-def evaluate_contradiction_heuristic(premise: str, hypothesis: str):
-    norm_p = premise.lower()
-    norm_h = hypothesis.lower()
-    
-    antonyms = [
-        ("allows", "prohibits"),
-        ("encrypted", "cleartext"),
-        ("mandatory", "optional"),
-        ("must", "optional"),
-        ("enable", "disable"),
-        ("online", "offline"),
-        ("secure", "vulnerable")
-    ]
-    
-    for w1, w2 in antonyms:
-        if (w1 in norm_p and w2 in norm_h) or (w2 in norm_p and w1 in norm_h):
-            return True, 0.95, f"Lexical polarity clash detected between '{w1}' and '{w2}'."
-            
-    if "not " in norm_p and "not " not in norm_h:
-        return True, 0.92, "Direct negation marker identified in premise proposition."
-    if "not " in norm_h and "not " not in norm_p:
-        return True, 0.92, "Direct negation marker identified in hypothesis proposition."
-        
-    return False, 0.12, "Propositions are semantically compatible or orthogonal."
+def evaluate_contradiction_engine(premise: str, hypothesis: str):
+    evaluation = evaluate_pair(premise, hypothesis)
+    prediction = bool(evaluation["prediction"])
+    confidence = 0.95 if prediction else 0.12
+    return prediction, confidence, evaluation["reason"]
 
 def run_live_receipts():
     if not os.path.exists(CORPUS_PATH):
@@ -52,7 +35,7 @@ def run_live_receipts():
 
     print("=" * 70)
     print("CRANIUM SUBSTRATE: LIVE EXECUTION RECEIPTS RUNNER")
-    print(f"Loaded {len(corpus)} frozen test items from corpus_frozen_v1.json")
+    print(f"Loaded {len(corpus)} frozen test items from {os.path.basename(CORPUS_PATH)}")
     print("=" * 70)
 
     receipts = []
@@ -60,7 +43,7 @@ def run_live_receipts():
 
     for item in corpus:
         t0 = time.perf_counter()
-        is_contra, conf_score, rationale = evaluate_contradiction_heuristic(
+        is_contra, conf_score, rationale = evaluate_contradiction_engine(
             item["premise"], item["hypothesis"]
         )
         latency_ms = (time.perf_counter() - t0) * 1000.0
@@ -69,13 +52,14 @@ def run_live_receipts():
         if passed:
             correct_count += 1
 
+        domain = item.get("domain", "frozen_corpus")
         receipt_payload = {
             "receipt_id": f"RCPT-{uuid.uuid4().hex[:12].upper()}",
             "item_id": item["id"],
-            "domain": item["domain"],
+            "domain": domain,
             "premise_atom": {
                 "proposition": item["premise"],
-                "lane": "enterprise.policy" if "Security" in item["domain"] or "Compliance" in item["domain"] else "general.epistemic",
+                "lane": "enterprise.policy" if "Security" in domain or "Compliance" in domain else "general.epistemic",
                 "provenance": "AXIOMATIC"
             },
             "hypothesis_atom": {

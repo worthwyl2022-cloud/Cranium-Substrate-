@@ -25,7 +25,7 @@ CORPUS_CANDIDATES = (
 def normalize(text: str) -> str:
     text = text.lower()
     text = text.replace("—", " ").replace("-", " ")
-    return re.sub(r"s+", " ", text).strip()
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def contains_any(text: str, phrases: tuple[str, ...]) -> bool:
@@ -223,6 +223,7 @@ def authority_scope_conflict(premise: str, hypothesis: str) -> dict[str, Any] | 
     )
     tier_zero_action = (
         "tier 0 modified",
+        "tier 0 operator modified",
         "tier 0 changed",
         "tier 0 altered",
         "tier zero modified",
